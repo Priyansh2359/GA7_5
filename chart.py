@@ -1,87 +1,60 @@
+# chart.py
+# Author: 23f2000814@ds.study.iitm.ac.in
+# This script generates a professional violinplot for support response times
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-from PIL import Image
-import io
 
-# Set random seed for reproducible results
+# -----------------------------
+# Generate synthetic business data
+# -----------------------------
 np.random.seed(42)
 
-# Generate realistic synthetic data for marketing campaign effectiveness
-n_campaigns = 120
+channels = ["Email", "Chat", "Phone", "Social Media"]
 
-# Generate data with clear patterns
-np.random.seed(42)
-campaign_data = {
-    'marketing_spend': np.random.uniform(10, 100, n_campaigns),  # Marketing spend in thousands
-    'conversion_rate': np.random.uniform(1, 20, n_campaigns),    # Conversion rate percentage
-    'campaign_type': np.random.choice(['Social Media', 'Email', 'PPC', 'Display'], n_campaigns),
-    'duration_days': np.random.randint(7, 60, n_campaigns)
-}
+data = []
+for channel in channels:
+    if channel == "Email":
+        response_times = np.random.normal(loc=30, scale=10, size=200)  # slower
+    elif channel == "Chat":
+        response_times = np.random.normal(loc=10, scale=4, size=200)   # fast
+    elif channel == "Phone":
+        response_times = np.random.normal(loc=20, scale=6, size=200)   # medium
+    else:  # Social Media
+        response_times = np.random.normal(loc=15, scale=5, size=200)   # moderate
+    
+    # Clip values to avoid negatives
+    response_times = np.clip(response_times, 1, None)
+    
+    for rt in response_times:
+        data.append({"Channel": channel, "ResponseTime": rt})
 
-# Create stronger correlation between spend and conversion
-for i in range(n_campaigns):
-    base_conversion = campaign_data['marketing_spend'][i] * 0.15 + np.random.normal(0, 2)
-    campaign_data['conversion_rate'][i] = max(0.5, min(25, base_conversion))
+df = pd.DataFrame(data)
 
-# Create DataFrame
-df = pd.DataFrame(campaign_data)
-
-# Set Seaborn style and context
+# -----------------------------
+# Visualization
+# -----------------------------
 sns.set_style("whitegrid")
-sns.set_context("notebook", font_scale=1.2)
+sns.set_context("talk")  # presentation-ready sizes
 
-# Create figure with exact dimensions
-plt.figure(figsize=(8, 8))
+plt.figure(figsize=(8, 8))  # 512x512 pixels with dpi=64
 
-# Create the Seaborn scatterplot - this is the key validation point
-sns.scatterplot(
+ax = sns.violinplot(
+    x="Channel",
+    y="ResponseTime",
     data=df,
-    x='marketing_spend',
-    y='conversion_rate',
-    hue='campaign_type',
-    size='duration_days',
-    sizes=(60, 200),
-    alpha=0.8,
-    palette='Set2'
+    palette="Set2",
+    inner="box",  # add a small boxplot inside
+    linewidth=1.2
 )
 
-# Customize the plot professionally
-plt.title('Marketing Campaign Effectiveness Analysis\nSpend vs Conversion Rate by Campaign Type', 
-          fontsize=16, fontweight='bold', pad=20)
-plt.xlabel('Marketing Spend (Thousands USD)', fontsize=14, fontweight='semibold')
-plt.ylabel('Conversion Rate (%)', fontsize=14, fontweight='semibold')
+# Title and labels
+ax.set_title("Customer Support Response Time Distribution by Channel", fontsize=14, weight="bold")
+ax.set_xlabel("Support Channel", fontsize=12)
+ax.set_ylabel("Response Time (minutes)", fontsize=12)
 
-# Improve legend positioning
-plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-
-# Add subtle grid and styling
-plt.grid(True, alpha=0.3)
-sns.despine()
-
-# Ensure tight layout
-plt.tight_layout()
-
-# Save to buffer and resize to exactly 512x512
-buf = io.BytesIO()
-plt.savefig(buf, format='png', dpi=80, facecolor='white', edgecolor='none', 
-            bbox_inches='tight')
-buf.seek(0)
-
-# Resize to exactly 512x512 pixels
-img = Image.open(buf)
-img_resized = img.resize((512, 512), Image.Resampling.LANCZOS)
-img_resized.save('chart.png', 'PNG', optimize=True)
-buf.close()
-
-# Display summary statistics
-print("Marketing Campaign Effectiveness Analysis")
-print("=" * 50)
-print(f"Total Campaigns: {len(df)}")
-print(f"Average Marketing Spend: ${df['marketing_spend'].mean():.2f}K")
-print(f"Average Conversion Rate: {df['conversion_rate'].mean():.2f}%")
-print(f"Correlation (Spend vs Conversion): {df['marketing_spend'].corr(df['conversion_rate']):.3f}")
-print("\nChart generated successfully with Seaborn scatterplot!")
-
-plt.show()
+# Save chart (512x512 pixels)
+plt.savefig("chart.png", dpi=64, bbox_inches="tight")
+plt.close()
